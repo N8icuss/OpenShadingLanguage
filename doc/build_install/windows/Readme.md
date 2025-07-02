@@ -52,15 +52,17 @@ My System and Setup Configuration:
 
 **Compiler:** Microsoft Visual Studio 2019
 
-**Git:** 2.28.0
+**Git:** 2.47.02 (latest version of Git should be fine)
 
 **Python:** 3.7 tip: disable python App Installer in Manage `App Execution Aliases (Windows 10)`
 
-**Cmake:** 3.18.4
+**Cmake:** 3.19 (or 3.18.4 for release is fine)
 
 **Qt:** 5.15.0
 
-**NASM:** 2.15.05 for JPEG
+**Qt_6:** 6.5.3
+
+**NASM:** 2.16.03 for JPEG
 
 **OpenShadingLanguage:** cloned from latest master branch
 
@@ -82,19 +84,28 @@ My System and Setup Configuration:
 
 **LibRaw:** 0.20.2
 
-**OpenImageIO:** 2.1.20
+**OpenImageIO:** 2.6.2.0
 
 **OpenColorIO:** 1.1.0
 
 **OpenEXR/**IlmBase: 2.5.3
 
-**GLUT:** 3.2.1 freeglut on windows (this is needed for partio) (unfortunately Partio didn't build, it has a problem) (I’ve created a PR for it in Disney github repo)
+**GLUT:** 3.4.0 freeglut on windows (this is needed for partio)
 
-**Disney Partio:** latest from master (zip file) (Skip this for now) (I didn't build OSL with Partio)
+**Disney Partio:** 1.14.0 or latest version
 
 **PugiXML:** 1.10
 
+**Doxygen:** 1.12
+
+**Boost:** 1.66 (requred by PyBind11, during the Debug build)
+
+**Pytest:** 7.44 (required by PyBind11, during the Debug build)
+
 ---
+
+(LLVM, CLANG, WinFlexBuson, Zlib, JPEG, TIFF, PNG, PyBind11, LibRaw, OpenImageIO, OpenColorIO, OpenEXR/IlmBase, Glut, Disney Partio, and PugiXML are all installed by the release build through build_osl.py)
+
 
 ### **1.3 Inspiration**
 
@@ -137,6 +148,7 @@ For running batch scripts without any problem I recommend to create some base en
 | BASE_LOCATION   | D:\madoodia\sdks                                                                   |
 | PYTHON_LOCATION | D:\madoodia\sdks                                                                   |
 | QT_LOCATION     | C:\Qt\5.15.0\msvc2019_64                                                           |
+| QT6_LOCATION    | C:\Qt_6\6.5.3\msvc2019_64                                                          |
 | NASM_LOCATION   | C:\NASM                                                                            |
 | GIT_LOCATION    | "C:\Program Files\Git"                                                             |
 | CMAKE_LOCATION  | "C:\Program Files\CMake"                                                           |
@@ -176,7 +188,7 @@ I am working on it to see how we can use external llvm installation without erro
 | --pybind11    | Implemented     | Yes     |
 | --Ptex        | Implemented     | No      |
 | --openvdb     | Implemented     | No      |
-| --partio      | Implemented     | No      |
+| --partio      | Implemented     | Yes     |
 | --ffmpeg      | Not-Implemented | No      |
 | --field3d     | Not-Implemented | No      |
 | --opencv      | Not-Implemented | No      |
@@ -198,6 +210,8 @@ Based on Environment Variables you set in previous sections you can just call th
 - Open Powershell
 - Go to: yourPath/OpenShadingLanguage/doc/build_install/windows
 - Run build_osl.bat release
+
+- During Run (release/debug) an error will come up just After Glut is installed and Partio Starts, see **6 for more info
 
 ### **3.1 Running the code based on your config**
 
@@ -256,7 +270,7 @@ After editing your code, when you want to see your changes you should build osl 
 
 **Release mode**:
 
-- open powershell
+- open powershell (Developer PowerShell for VS 2019)
 - cd OpenShadingLanguage repo
 - cd build_script
 - run build_osl.bat release
@@ -266,10 +280,10 @@ After editing your code, when you want to see your changes you should build osl 
 
 **Debug mode**:
 
-- open powershell
+- open powershell (Developer PowerShell for VS 2019)
 - cd OpenShadingLanguage repo
 - cd build_script
-- run build_osl.bat debug
+- run build_osl.bat debug (Errors at pybind11)
 - run osl_debug_sln.bat
 - example: set osltoy as default project
   - run it in debug x64 mode
@@ -309,3 +323,22 @@ I am trying to build OSL on `Linux` with same method. If it worked fine I will U
 ---
 
 ![osl_building_on_windows](./osl_building_on_windows.jpg)
+
+
+### **6. Error: Cannot open include file: 'GL/glut.h'**
+
+For some reason the glut.h file is not included in the files that are copied from "../src/freeglut-3.4.0/include/GL/" to "../include/GL/", so we must manually copy it over.
+
+- release should be built as normal
+- After Glut finishes installing, Partio will begin it's install
+- At the beginning of Partio's install, it will break with the following error code:
+		"C:\madoodia\sdks\osl_release\src\partio-1.14.0\src\tools\partview.h(47,10): fatal error C1083: Cannot open include file: 'GL/glut.h': No such file or directory [C:\madoodia\sdks\osl_release\build\partio-1.14.0\src\tools\partview.vcxproj]"
+
+- Go to "C:\madoodia\sdks\osl_release\src\freeglut-3.4.0\include\GL\" and manually copy the local glut.h file.
+- Paste the glut.h file into the "C:\madoodia\sdks\osl_release\include\GL" directory.
+
+- again, Open Powershell
+- Go to: yourPath/OpenShadingLanguage/doc/build_install/windows
+- Run build_osl.bat release
+
+The reason for this error is because in build_osl.py it is copying all files that start with "freeglut" from this folder. I tried fixing it so it included glut.h in it's copy over, but ran into issues doing so.

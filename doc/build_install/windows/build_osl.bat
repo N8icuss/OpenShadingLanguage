@@ -36,13 +36,14 @@ if "%OSL_INPUT_CONFIG%" neq "" (
 
 :RUN
 
-set PATH=%CMAKE_LOCATION%/bin;GIT_LOCATION/cmd;%PYTHON_LOCATION%;%PYTHON_LOCATION%/Scripts;%QT_LOCATION%/bin;%QT_LOCATION%/lib;%NASM_LOCATION%;%PATH%
+set PATH=%CMAKE_LOCATION%/bin;GIT_LOCATION/cmd;%PYTHON_LOCATION%;%PYTHON_LOCATION%/Scripts;%QT_LOCATION%/bin;%QT_LOCATION%/lib;%QT6_LOCATION%/bin;%QT6_LOCATION%/lib;%NASM_LOCATION%;%PATH%
 set PYTHONPATH=%PYTHON_LOCATION%/Lib/site-packages;
 set Qt5_ROOT=%QT_LOCATION%/lib/cmake
+set Qt6_ROOT=%QT6_LOCATION%/lib/cmake
 
 call %VCVARS_LOCATION%/vcvarsall.bat x64
 
 cls
 
-python build_osl.py --generator "Visual Studio 16 2019" --osl --python %OSL_BUILD_CONFIG% --zlib --llvm --clang --pugixml --openexr --tiff --jpeg --png --flex --bison --opencolorio --openimageio --libraw --pybind11 %BASE_LOCATION%/%OSL_LOCATION_DIR%
+python build_osl.py --generator "Visual Studio 16 2019" --osl --python %OSL_BUILD_CONFIG% --zlib --llvm --clang --pugixml --openexr --tiff --jpeg --png --flex --bison --opencolorio --partio --imath --openimageio --libraw --pybind11 %BASE_LOCATION%/%OSL_LOCATION_DIR%
 

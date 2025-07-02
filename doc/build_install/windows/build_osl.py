@@ -923,26 +923,33 @@ PTEX = Dependency("Ptex", InstallPtex, "include/PtexVersion.h")
 ############################################################
 # GLUT (for Partio)
 
-GLUT_URL = "http://prdownloads.sourceforge.net/freeglut/freeglut-3.2.1.tar.gz"
+#GLUT_URL = "http://prdownloads.sourceforge.net/freeglut/freeglut-3.2.1.tar.gz"
+#GLUT_URL = "https://sourceforge.net/projects/freeglut/files/freeglut/3.4.0/freeglut-3.4.0.tar.gz/download"
+GLUT_URL = "https://sourceforge.net/projects/freeglut/files/freeglut/3.4.0/freeglut-3.4.0.tar.gz"
 
 
 def InstallGLUT(context, force, buildArgs):
     with CurrentWorkingDirectory(DownloadURL(GLUT_URL, context, force)):
+        extraArgs = []
+        #extraArgs.append("-DFREEGLUT_REPLACE_GLUT=ON")
         RunCMake(context, force, buildArgs)
 
 
 GLUT = Dependency("GLUT", InstallGLUT, "include/GL/freeglut.h")
+#GLUT = Dependency("GLUT", InstallGLUT, "include/GL/freeglut.h", "include/GL/glut.h") #tried this for step 6 in ReadMe, but didn't work so have to manually copy glut.h file
 
 ############################################################
 # Partio (for OSL)
 
-# Partio_URL = "https://github.com/wdas/partio/archive/v1.13.0.zip"
-Partio_URL = "https://github.com/wdas/partio/archive/b1163a94261cb43d05966c5075edcdacfe4af52d.zip"
+#Partio_URL = "https://github.com/wdas/partio/archive/v1.13.0.zip"
+#Partio_URL = "https://github.com/wdas/partio/archive/b1163a94261cb43d05966c5075edcdacfe4af52d.zip"
+Partio_URL = "https://github.com/wdas/partio/archive/refs/tags/v1.14.0.zip"
 
 
 def InstallPartio(context, force, buildArgs):
     with CurrentWorkingDirectory(DownloadURL(Partio_URL, context, force)):
         extraArgs = []
+        #extraArgs.append("-DFREEGLUT_REPLACE_GLUT=ON")
         extraArgs.append(
             '-DGLUT_INCLUDE_DIR="{instDir}/include"'.format(instDir=context.instDir)
         )
@@ -1029,6 +1036,7 @@ PyBind11_URL = "https://github.com/pybind/pybind11/archive/v2.6.0.zip"
 
 def InstallPyBind11(context, force, buildArgs):
     with CurrentWorkingDirectory(DownloadURL(PyBind11_URL, context, force)):
+
         RunCMake(context, force, buildArgs)
 
 
@@ -1057,6 +1065,12 @@ def InstallOSL(context, force, buildArgs):
             delimeter = ";"
         if Windows():
             extraArgs.append('-DLLVM_ROOT="{instDir}"'.format(instDir=context.instDir))
+        if Windows():
+            extraArgs.append("-DPackage_ROOT=path")
+            extraArgs.append("-DUSE_Package=OFF")
+            #extraArgs.append("-DImath_DIR=C:\Imath\config")
+            #extraArgs.append("-DImath_INCLUDE_DIR=C:\Imath\src\Imath")
+            #extraArgs.append("-DImath_LIBRARY=C:\Imath\src\Imath\Release\Imath-3_2.lib")
 
         # if Linux():
         #     extraArgs.append(
@@ -1075,7 +1089,6 @@ def InstallOSL(context, force, buildArgs):
                 # extraArgs.append('-DCMAKE_PREFIX_PATH="{instDir}";"{buildDir}/OpenShadingLanguage/bin"'.format(instDir=context.instDir,buildDir=context.buildDir))
 
             extraArgs.append("-DENABLE_PRECOMPILED_HEADERS=OFF")
-            extraArgs.append("-DUSE_Package=OFF")
 
         extraArgs += buildArgs
 
@@ -1153,19 +1166,72 @@ def InstallOpenVDB(context, force, buildArgs):
 OPENVDB = Dependency("OpenVDB", InstallOpenVDB, "include/openvdb/openvdb.h")
 
 ############################################################
+# Imath (for OpenImageIO and OSL)
+
+IMATH_URL = "https://github.com/AcademySoftwareFoundation/Imath/archive/refs/tags/v3.1.10-rc.zip"
+
+
+def InstallImath(context, force, buildArgs):
+    with CurrentWorkingDirectory(DownloadURL(IMATH_URL, context, force)):
+        extraArgs = [
+            "-DBUILD_SHARED_LIBS=ON",
+            "-DBUILD_TESTING=OFF",
+            "-DIMATH_BUILD_EXAMPLES=OFF",
+            "-DIMATH_BUILD_PYTHON=OFF",
+            "-DIMATH_BUILD_TESTING=OFF",
+            "-DIMATH_BUILD_TOOLS=OFF",
+            "-DIMATH_INSTALL_DOCS=OFF",
+            "-DIMATH_INSTALL_PKG_CONFIG=OFF",
+            "-DIMATH_INSTALL_TOOLS=OFF",
+            #"",
+            #"",
+            #"",
+            #"-DCMAKE_BUILD_TYPE=RELEASE",
+        ]
+
+        # OIIO's FindOpenEXR module circumvents CMake's normal library
+        # search order, which causes versions of OpenEXR installed in
+        # /usr/local or other hard-coded locations in the module to
+        # take precedence over the version we've built, which would
+        # normally be picked up when we specify CMAKE_PREFIX_PATH.
+        # This may lead to undefined symbol errors at build or runtime.
+        # So, we explicitly specify the OpenEXR we want to use here.
+        extraArgs.append('-DCMAKE_INSTALL_PREFIX="{instDir}"'.format(instDir=context.instDir))
+
+        # If Ptex support is disabled in OSL, disable support in OpenImageIO
+        # as well. This ensures OIIO doesn't accidentally pick up a Ptex
+        # library outside of our build.
+        #if not context.buildPTEX:
+            #extraArgs.append("-DUSE_PTEX=OFF")
+
+        # Add on any user-specified extra arguments.
+        extraArgs += buildArgs
+
+        RunCMake(context, force, extraArgs)
+
+
+IMATH = Dependency(
+    "Imath", InstallImath, "include/imath/imath.h"
+)
+
+############################################################
 # OpenImageIO
 
 # OIIO_URL = "https://github.com/AcademySoftwareFoundation/OpenImageIO/archive/Release-2.2.7.0.zip"
-OIIO_URL = "https://github.com/AcademySoftwareFoundation/OpenImageIO/archive/Release-2.1.20.0.zip"
+#OIIO_URL = "https://github.com/AcademySoftwareFoundation/OpenImageIO/archive/Release-2.1.20.0.zip"
+OIIO_URL = "https://github.com/AcademySoftwareFoundation/OpenImageIO/archive/refs/tags/v2.6.2.0-dev.zip"
 
 
 def InstallOpenImageIO(context, force, buildArgs):
     with CurrentWorkingDirectory(DownloadURL(OIIO_URL, context, force)):
         extraArgs = [
+            "-DBUILD_SHARED_LIBS=ON",
             "-DOIIO_BUILD_TOOLS=OFF",
             "-DOIIO_BUILD_TESTS=OFF",
             "-DUSE_PYTHON=OFF",
             "-DSTOP_ON_WARNING=OFF",
+            "-DBoost_NO_BOOST_CMAKE=ON",
+            "-DOpenImageIO_BUILD_MISSING_DEPS=all",
         ]
 
         # OIIO's FindOpenEXR module circumvents CMake's normal library
@@ -1547,6 +1613,14 @@ subgroup.add_argument(
 )
 subgroup = group.add_mutually_exclusive_group()
 subgroup.add_argument(
+    "--imath",
+    dest="build_imath",
+    action="store_true",
+    default=False,
+    help="Build Imath for OSL",
+)
+subgroup = group.add_mutually_exclusive_group()
+subgroup.add_argument(
     "--openimageio",
     dest="build_oiio",
     action="store_true",
@@ -1689,6 +1763,7 @@ class InstallContext:
         # Prerequisites
         self.pythonInstallDir = os.path.normpath(os.environ["PYTHON_LOCATION"])
         self.qtInstallDir = os.path.normpath(os.environ["QT_LOCATION"])
+        self.qtInstallDir = os.path.normpath(os.environ["QT6_LOCATION"])
         self.nasmInstallDir = os.path.normpath(os.environ["NASM_LOCATION"])
         self.gitInstallDir = os.path.normpath(os.environ["GIT_LOCATION"])
         self.cmakeInstallDir = os.path.normpath(os.environ["CMAKE_LOCATION"])
@@ -1743,6 +1818,7 @@ class InstallContext:
         # Optional components
         self.buildPython = args.build_python
 
+        self.buildIMATH = args.build_imath
         self.buildOIIO = args.build_oiio
         self.buildZLIB = args.build_zlib
         self.buildLLVM = args.build_llvm
@@ -1835,6 +1911,8 @@ if context.buildOSL:
             requiredDependencies += [WINFLEXBISON]
     if context.buildOPENEXR:
         requiredDependencies += [OPENEXR]
+    if context.buildIMATH:
+        requiredDependencies += [IMATH]
 
 if context.buildOIIO:
     if context.buildJPEG:
@@ -1986,6 +2064,7 @@ Building with settings:         ------------
     CLANG:                      {buildCLANG}
     PugiXML:                    {buildPUGIXML}
     OpenEXR/IlmBase:            {buildOPENEXR}
+    Imath:                      {buildIMATH}
     OpenImageIO:                {buildOIIO}
     TIFF:                       {buildTIFF}
     JPEG:                       {buildJPEG}
@@ -2065,6 +2144,7 @@ summaryMsg = summaryMsg.format(
     buildConfig=("Debug" if context.buildDebug else "Release"),
     buildPTEX=("On" if context.buildPTEX else "Off"),
     buildOIIO=("On" if context.buildOIIO else "Off"),
+    buildIMATH=("On" if context.buildIMATH else "Off"),
     buildZLIB=("On" if context.buildZLIB else "Off"),
     buildLLVM=("On" if context.buildLLVM else "Off"),
     buildCLANG=("On" if context.buildCLANG else "Off"),
